@@ -15,6 +15,7 @@ const PORT = process.env.PORT || 3000;
 const BASE_BET = 100;
 const START_COINS = 10000;
 const MAX_SEATS = 8;
+const ROOM_OWNER_PASSWORD = process.env.ROOM_OWNER_PASSWORD || '1234';
 const ACTION_TIMEOUT_MS = 20000;
 const SPECIAL_ROUND_INTERVAL = 20;
 const REVEAL_DELAY_MS = 1350;
@@ -483,7 +484,11 @@ function destroyRoom(room){
 
 /* ================= Socket 事件 ================= */
 io.on('connection', (socket) => {
-  socket.on('createRoom', async ({ name, seats, hostPlays }) => {
+  socket.on('createRoom', async ({ name, seats, hostPlays, ownerPassword }) => {
+    if (String(ownerPassword || '') !== ROOM_OWNER_PASSWORD){
+      socket.emit('errMsg', '开房密码不对');
+      return;
+    }
     const room = await makeRoom(socket.id, name, seats, socket, hostPlays !== false);
     socket.join(room.code);
     socket.emit('joined', { code:room.code, mySeat: hostPlays === false ? -1 : 0, isHost:true });
