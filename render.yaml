@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: huanle-douniu
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production

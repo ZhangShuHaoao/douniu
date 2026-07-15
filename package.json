@@ -1,0 +1,20 @@
+{
+  "name": "doudou-online",
+  "version": "1.0.0",
+  "private": true,
+  "description": "欢乐斗牛 联机版（同一 WiFi 手机联机，AI 补齐，最多 8 人）",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "socket.io": "^4.7.5",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.7.5"
+  }
+}

@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>欢乐斗牛 · 联机</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  :root{ --gold:#ffd24a; --gold-deep:#d99b12; --red:#d7263d; --felt1:#1f7a4d; --felt2:#0d5236; }
+  html,body{height:100%;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    background:radial-gradient(ellipse at 50% 30%,#12613f,#07281a 80%);color:#fff;overflow:hidden;user-select:none;}
+  .screen{position:fixed;inset:0;display:none;flex-direction:column;}
+  .screen.on{display:flex;}
+
+  /* ---------- 通用 ---------- */
+  .btn{background:linear-gradient(180deg,#ffe27a,var(--gold-deep));color:#5a3a00;font-weight:800;
+    border:none;border-radius:12px;padding:13px 20px;font-size:16px;cursor:pointer;
+    box-shadow:0 4px 0 #a9730a,0 6px 12px rgba(0,0,0,.4);transition:transform .06s,box-shadow .06s;}
+  .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #a9730a;}
+  .btn.grey{background:linear-gradient(180deg,#c7ccd1,#8b9299);color:#22282e;box-shadow:0 4px 0 #5c636a;}
+  .btn.grey:active{box-shadow:0 1px 0 #5c636a;}
+  .btn:disabled{opacity:.5;filter:grayscale(.4);}
+  input{font-size:16px;padding:12px 14px;border-radius:10px;border:2px solid rgba(255,255,255,.3);
+    background:rgba(0,0,0,.3);color:#fff;width:100%;outline:none;}
+  input:focus{border-color:var(--gold);}
+  h1{font-size:34px;font-weight:900;letter-spacing:4px;color:var(--gold);text-shadow:0 3px 0 var(--gold-deep),0 6px 16px rgba(0,0,0,.6);}
+  .card-shell{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:20px;}
+
+  /* ---------- HOME ---------- */
+  #home{align-items:center;justify-content:center;gap:22px;padding:24px;}
+  #home .sub{color:#cfe9dc;font-size:13px;text-align:center;line-height:1.7;}
+  #home .box{width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px;}
+  .divider{display:flex;align-items:center;gap:10px;color:#8fb3a2;font-size:12px;}
+  .divider::before,.divider::after{content:"";height:1px;flex:1;background:rgba(255,255,255,.15);}
+
+  /* ---------- LOBBY ---------- */
+  #lobby{align-items:center;padding:20px 16px;gap:16px;overflow-y:auto;}
+  #lobby .code{font-size:40px;font-weight:900;letter-spacing:8px;color:var(--gold);}
+  #lobby .qr{width:200px;height:200px;border-radius:12px;background:#fff;padding:8px;}
+  #lobby .qr img{width:100%;height:100%;display:block;}
+  #lobby .joinurl{font-size:13px;color:#cfe9dc;word-break:break-all;text-align:center;}
+  .plist{width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px;}
+  .prow{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.3);border-radius:12px;padding:8px 14px;}
+  .prow .av{font-size:22px;} .prow .nm{font-weight:700;flex:1;}
+  .prow .tag{font-size:11px;padding:2px 8px;border-radius:8px;background:rgba(255,210,74,.2);color:var(--gold);}
+  .prow.bot .nm{color:#a9c7ba;}
+  .seatsel{display:flex;align-items:center;gap:14px;font-size:15px;}
+  .seatsel button{width:38px;height:38px;border-radius:50%;border:none;font-size:22px;font-weight:900;background:var(--gold);color:#5a3a00;}
+  .seatsel b{font-size:24px;color:var(--gold);min-width:26px;text-align:center;}
+
+  /* ---------- GAME ---------- */
+  #game{}
+  #gtop{flex:none;display:flex;align-items:center;justify-content:space-between;padding:8px 12px;
+    background:linear-gradient(180deg,#10261b,#0a1712);border-bottom:1px solid rgba(255,210,74,.25);font-size:12px;z-index:5;}
+  #gtop .l{display:flex;gap:12px;align-items:center;}
+  #gtop b{color:var(--gold);}
+  #gtop .props{background:rgba(255,210,74,.12);border:1px solid rgba(255,210,74,.35);border-radius:8px;padding:2px 8px;}
+
+  #opps{flex:none;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:8px 6px;}
+  .opp{width:calc(25% - 6px);min-width:74px;max-width:96px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12);
+    border-radius:10px;padding:5px 4px;position:relative;transition:box-shadow .2s;}
+  .opp.turn{border-color:var(--gold);box-shadow:0 0 12px rgba(255,210,74,.6);}
+  .opp.banker{background:linear-gradient(180deg,rgba(255,210,74,.22),rgba(60,40,0,.4));}
+  .opp .top{display:flex;align-items:center;gap:4px;}
+  .opp .av{font-size:16px;} .opp .nm{font-size:11px;font-weight:700;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  .opp .co{font-size:10px;color:var(--gold);text-align:center;}
+  .opp .mini{display:flex;justify-content:center;gap:1px;margin-top:2px;height:26px;}
+  .crown{position:absolute;top:-8px;right:-6px;background:radial-gradient(circle at 35% 30%,#ffe27a,var(--gold-deep));
+    color:#5a3a00;font-weight:900;font-size:11px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff;z-index:2;}
+  .opp .st{font-size:10px;text-align:center;margin-top:2px;font-weight:700;min-height:13px;}
+  .opp .st.grab{color:#ff9b9b;} .opp .st.bet{color:#8fd3ff;} .opp .st.niu{color:var(--gold);}
+  .opp .st.win{color:#ffd24a;} .opp .st.lose{color:#ff6b6b;}
+  .opp.off{opacity:.5;}
+  .opp.bankrupt{opacity:.58;filter:grayscale(.85);}
+  .opp.bankrupt .mini{display:none;}
+
+  #mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;position:relative;min-height:0;padding:4px;}
+  #phase{font-size:16px;font-weight:800;color:var(--gold);text-shadow:0 2px 6px rgba(0,0,0,.7);text-align:center;}
+  #msg{font-size:12px;color:#e6f7ee;text-align:center;}
+  #timer{width:180px;height:8px;background:rgba(0,0,0,.4);border-radius:5px;overflow:hidden;display:none;}
+  #timer.on{display:block;} #timerbar{height:100%;width:100%;background:linear-gradient(90deg,#ffd24a,#ff8a3d);transition:width .2s linear;}
+  #timerText{display:none;min-width:34px;text-align:center;font-size:13px;font-weight:900;color:var(--gold-light);}
+  #timerText.on{display:block;}
+  #fx{position:absolute;font-size:40px;font-weight:900;opacity:0;pointer-events:none;text-shadow:0 0 18px rgba(255,210,74,.9),0 3px 0 #a9730a;color:var(--gold);}
+  #fx.show{animation:fxpop 1.1s ease-out;}
+  @keyframes fxpop{0%{opacity:0;transform:scale(.4)}30%{opacity:1;transform:scale(1.15)}70%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.1)}}
+
+  #meWrap{flex:none;padding:6px 8px 10px;background:linear-gradient(0deg,#0a1712,transparent);}
+  #myhand{display:flex;justify-content:center;gap:5px;margin-bottom:4px;min-height:96px;}
+  #mefoot{display:flex;align-items:center;justify-content:center;gap:10px;font-size:12px;}
+  #mefoot .co{color:var(--gold);font-weight:800;}
+  #meNiu{font-size:15px;font-weight:900;padding:2px 12px;border-radius:16px;display:none;}
+  #meNiu.on{display:inline-block;}
+
+  #actions{flex:none;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:8px 10px 16px;min-height:60px;
+    background:#0a1712;z-index:6;}
+  #actions .btn{padding:11px 15px;font-size:15px;min-width:70px;}
+
+  /* 卡牌 */
+  .cd{border-radius:6px;background:linear-gradient(160deg,#fff,#eef1f6);position:relative;flex:none;
+    box-shadow:0 2px 5px rgba(0,0,0,.4);display:flex;flex-direction:column;justify-content:space-between;}
+  .cd .r{font-weight:800;font-family:Georgia,serif;line-height:.9;}
+  .cd .s{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);}
+  .cd.red{color:var(--red);} .cd.black{color:#1a1a1a;}
+  .cd.back{background:#1c3f6e;} .cd.back::after{content:"牛";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,210,74,.85);font-weight:900;}
+  .cd.mini{width:15px;height:22px;padding:1px;border-radius:3px;}
+  .cd.mini .r{font-size:8px;} .cd.mini .s{font-size:9px;} .cd.mini.back::after{font-size:11px;}
+  .cd.mini .s{display:none;}
+  .cd.big{width:58px;height:82px;padding:5px 6px;}
+  .cd.big .r{font-size:17px;} .cd.big .s{font-size:24px;} .cd.big.back::after{font-size:24px;}
+  .cd.n3{box-shadow:inset 0 0 0 2px #2ecc71,0 2px 5px rgba(0,0,0,.4);}
+  .cd.n2{box-shadow:inset 0 0 0 2px var(--gold),0 2px 5px rgba(0,0,0,.4);}
+  @keyframes flipin{from{transform:rotateY(90deg);opacity:.3}to{transform:rotateY(0);opacity:1}}
+  .cd.reveal{animation:flipin .65s ease-out both;}
+
+  .niu-great{background:linear-gradient(135deg,#f7971e,#ffd200);color:#5a3a00;}
+  .niu-good{background:linear-gradient(135deg,#ff5e62,#c0392b);color:#fff;}
+  .niu-none{background:linear-gradient(135deg,#555,#333);color:#bbb;}
+  .niu-plain{background:linear-gradient(135deg,#333,#111);color:#fff;}
+  .toast{position:fixed;top:70px;left:50%;transform:translate(-50%,-8px);z-index:50;opacity:0;
+    background:linear-gradient(180deg,#3a2600,#5a3c00);color:#ffe27a;font-weight:800;font-size:13px;
+    padding:8px 18px;border-radius:20px;border:1px solid rgba(255,210,74,.5);transition:all .3s;}
+  .toast.on{opacity:1;transform:translate(-50%,0);}
+
+  /* ---------- 2026 视觉升级：深绿赌场桌面 ---------- */
+  :root{
+    --gold:#f7cf67; --gold-light:#fff0af; --gold-deep:#b97818;
+    --ink:#06130e; --panel:rgba(4,22,15,.78); --line:rgba(247,207,103,.22);
+  }
+  html,body{
+    background:
+      radial-gradient(circle at 50% 5%,rgba(49,174,111,.22),transparent 34%),
+      radial-gradient(circle at 50% 58%,#146440 0,#0a3b28 42%,#041b13 100%);
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;opacity:.26;
+    background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+    background-size:22px 22px;
+  }
+  .screen{isolation:isolate;}
+  h1{
+    font-size:42px;letter-spacing:7px;line-height:1.1;
+    background:linear-gradient(180deg,#fff7cf 0,#f7cf67 48%,#c78625 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 4px 0 rgba(94,52,3,.75)) drop-shadow(0 12px 24px rgba(0,0,0,.45));
+    text-shadow:none;
+  }
+  .btn{
+    position:relative;overflow:hidden;border:1px solid rgba(255,244,193,.76);border-radius:14px;
+    background:linear-gradient(145deg,#fff0a6 0,#f4c95d 46%,#c98b28 100%);color:#4a2c00;
+    box-shadow:0 5px 0 #84500d,0 11px 24px rgba(0,0,0,.34);letter-spacing:.5px;
+  }
+  .btn::before{content:"";position:absolute;left:8%;right:8%;top:2px;height:1px;background:rgba(255,255,255,.8);}
+  .btn.grey{
+    border-color:rgba(211,229,220,.45);background:linear-gradient(145deg,#d9e6df,#94aaa0);color:#153128;
+    box-shadow:0 5px 0 #52685e,0 11px 24px rgba(0,0,0,.3);
+  }
+  input{
+    min-height:48px;border:1px solid rgba(247,207,103,.22);border-radius:13px;background:rgba(2,17,11,.72);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 8px 22px rgba(0,0,0,.16);color:#fff7dc;
+  }
+  input::placeholder{color:#8eb4a3;}
+  input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(247,207,103,.12),inset 0 1px 0 rgba(255,255,255,.05);}
+  .card-shell{
+    padding:22px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,rgba(7,35,24,.86),rgba(3,20,14,.78));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 26px 60px rgba(0,0,0,.36);backdrop-filter:blur(14px);
+  }
+
+  /* 首页 */
+  #home{gap:24px;padding:28px;}
+  #home::before{
+    content:"♠  ♥  ♣  ♦";position:absolute;top:calc(50% - 176px);font-family:Georgia,serif;font-size:15px;
+    letter-spacing:9px;color:rgba(247,207,103,.72);
+  }
+  #home .sub{color:#aed7c5;font-size:14px;letter-spacing:1px;}
+  #home .box{max-width:390px;gap:15px;}
+  .divider{color:#759d8b;}
+  .divider::before,.divider::after{background:linear-gradient(90deg,transparent,rgba(247,207,103,.28),transparent);}
+
+  /* 大厅 */
+  #lobby{gap:13px;padding:24px 16px 34px;}
+  #lobby::before{
+    content:"等待开局";font-size:11px;font-weight:800;letter-spacing:3px;color:var(--gold);padding:5px 13px;
+    border:1px solid rgba(247,207,103,.28);border-radius:999px;background:rgba(0,0,0,.18);
+  }
+  #lobby .code{
+    min-width:220px;padding:7px 18px 8px;border:1px solid rgba(247,207,103,.34);border-radius:16px;
+    background:linear-gradient(145deg,rgba(3,23,15,.8),rgba(20,73,48,.55));font-size:38px;letter-spacing:10px;text-indent:10px;
+    text-align:center;text-shadow:0 4px 18px rgba(247,207,103,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 12px 30px rgba(0,0,0,.25);
+  }
+  #lobby .qr{width:184px;height:184px;padding:9px;border:4px solid rgba(255,255,255,.9);box-shadow:0 14px 34px rgba(0,0,0,.35);}
+  #lobby .joinurl{max-width:430px;padding:7px 12px;border-radius:10px;background:rgba(0,0,0,.2);color:#9fc7b5;}
+  .plist{gap:7px;}
+  .prow{min-height:46px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(90deg,rgba(3,24,16,.72),rgba(10,48,32,.62));box-shadow:inset 0 1px 0 rgba(255,255,255,.04);}
+  .prow .av{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:rgba(247,207,103,.13);font-size:19px;}
+  .prow .tag{border:1px solid rgba(247,207,103,.18);}
+  .seatsel{padding:10px 15px;border-radius:14px;background:rgba(0,0,0,.2);}
+
+  /* 游戏桌面 */
+  #game{background:radial-gradient(ellipse at 50% 42%,rgba(34,143,89,.16),transparent 60%);}
+  #game::before{
+    content:"";position:absolute;left:-18%;right:-18%;top:18%;bottom:18%;z-index:-1;pointer-events:none;
+    border:1px solid rgba(247,207,103,.12);border-radius:50%;box-shadow:inset 0 0 70px rgba(0,0,0,.12),0 0 50px rgba(247,207,103,.03);
+  }
+  #gtop{
+    min-height:50px;padding:8px 14px;background:linear-gradient(180deg,rgba(5,20,14,.98),rgba(5,29,19,.95));
+    border-bottom:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.18);font-size:13px;
+  }
+  #gtop .l{gap:10px;} #gtop b{font-size:15px;color:var(--gold-light);}
+  #gtop .props{padding:5px 9px;border-color:rgba(247,207,103,.28);background:rgba(247,207,103,.1);}
+
+  #opps{gap:7px;padding:10px 7px 6px;align-content:flex-start;}
+  .opp{
+    width:calc(25% - 7px);min-width:72px;max-width:112px;min-height:92px;padding:7px 5px 6px;
+    border:1px solid rgba(255,255,255,.1);border-radius:13px;background:linear-gradient(155deg,rgba(9,48,32,.88),rgba(2,22,15,.88));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 8px 20px rgba(0,0,0,.2);
+  }
+  .opp.turn{border-color:var(--gold);box-shadow:0 0 0 2px rgba(247,207,103,.13),0 0 22px rgba(247,207,103,.25);}
+  .opp.banker{background:linear-gradient(155deg,rgba(93,63,8,.85),rgba(37,27,4,.88));border-color:rgba(247,207,103,.34);}
+  .opp.revealing{
+    z-index:3;border-color:#fff0a0;animation:revealPulse 1.05s ease-out both;
+    box-shadow:0 0 0 2px rgba(247,207,103,.18),0 0 28px rgba(247,207,103,.48),inset 0 1px 0 rgba(255,255,255,.12);
+  }
+  .opp.revealing .mini{filter:drop-shadow(0 5px 8px rgba(0,0,0,.32));}
+  .opp.revealing .cd.reveal:nth-child(2){animation-delay:.05s;}
+  .opp.revealing .cd.reveal:nth-child(3){animation-delay:.1s;}
+  .opp.revealing .cd.reveal:nth-child(4){animation-delay:.15s;}
+  .opp.revealing .cd.reveal:nth-child(5){animation-delay:.2s;}
+  #meWrap.revealing{animation:myRevealPulse 1.05s ease-out both;}
+  @keyframes revealPulse{
+    0%{transform:translateY(4px) scale(.96);filter:brightness(.8)}
+    45%{transform:translateY(-3px) scale(1.035);filter:brightness(1.22)}
+    100%{transform:translateY(0) scale(1);filter:brightness(1)}
+  }
+  @keyframes myRevealPulse{
+    0%{filter:brightness(.85)}50%{filter:brightness(1.22);text-shadow:0 0 18px rgba(247,207,103,.65)}100%{filter:brightness(1)}
+  }
+  .opp .top{gap:5px;min-width:0;}
+  .opp .av{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.08);font-size:15px;}
+  .opp .nm{font-size:11px;color:#f1fff8;}
+  .opp .co{margin-top:2px;font-size:9px;color:#e9c968;opacity:.92;}
+  .opp .mini{height:37px;margin-top:5px;gap:0;align-items:center;overflow:visible;}
+  .opp .mini .cd + .cd{margin-left:-8px;}
+  .opp .st{display:flex;align-items:center;justify-content:center;min-height:15px;margin-top:3px;font-size:10px;line-height:1.1;}
+  .crown{top:-8px;right:-5px;width:21px;height:21px;border-color:#fff4c3;background:linear-gradient(145deg,#fff0a0,#d39426);box-shadow:0 3px 10px rgba(0,0,0,.35);}
+
+  #mid{gap:8px;padding:8px;}
+  #phase{padding:5px 13px;border:1px solid rgba(247,207,103,.24);border-radius:999px;background:rgba(3,24,16,.48);font-size:15px;letter-spacing:1px;}
+  #msg{max-width:90%;color:#cce8dc;font-size:13px;}
+  #timer{height:6px;background:rgba(0,0,0,.5);box-shadow:0 0 0 1px rgba(255,255,255,.05);}
+  #meWrap{padding:8px 8px 9px;background:linear-gradient(0deg,rgba(3,18,12,.98),rgba(3,18,12,.56) 72%,transparent);}
+  #myhand{gap:6px;margin-bottom:7px;min-height:96px;}
+  #mefoot{font-size:13px;} #mefoot .co{color:var(--gold-light);}
+  #actions{min-height:72px;padding:9px 10px calc(16px + env(safe-area-inset-bottom));gap:9px;background:rgba(3,18,12,.98);border-top:1px solid rgba(255,255,255,.05);}
+  #actions .btn{min-width:74px;padding:11px 15px;}
+
+  /* 对手牌从 15×22 放大到 23×34，并通过叠放适配四列 */
+  .cd{border:1px solid rgba(12,23,18,.18);box-shadow:0 3px 8px rgba(0,0,0,.36);}
+  .cd.mini{width:23px;height:34px;padding:2px 2px;border-radius:4px;}
+  .cd.mini .r{font-size:9px;line-height:.82;letter-spacing:-.4px;}
+  .cd.mini .s{display:none;}
+  .cd.mini.back{background:linear-gradient(145deg,#244f7f,#102d52);box-shadow:inset 0 0 0 2px rgba(255,255,255,.14),0 3px 7px rgba(0,0,0,.32);}
+  .cd.mini.back::after{font-size:12px;color:#f3d775;}
+  .cd.big{width:60px;height:88px;padding:6px;border-radius:8px;}
+  .cd.big .r{font-size:18px;} .cd.big .s{font-size:26px;}
+
+  .toast{top:64px;padding:10px 19px;border-radius:12px;background:rgba(36,25,4,.95);box-shadow:0 12px 28px rgba(0,0,0,.38);}
+
+  @media (max-width:360px){
+    #opps{gap:5px;padding-left:5px;padding-right:5px;}
+    .opp{width:calc(33.333% - 5px);min-width:84px;max-width:none;padding-left:3px;padding-right:3px;}
+    .cd.mini{width:23px;height:34px;}
+    .opp .mini .cd + .cd{margin-left:-7px;}
+    .cd.big{width:54px;height:80px;}
+    #myhand{gap:4px;min-height:86px;}
+  }
+  @media (min-width:361px) and (max-width:520px){
+    .opp{width:calc(33.333% - 6px);min-width:100px;max-width:none;}
+    .cd.mini{width:26px;height:38px;}
+    .opp .mini{height:41px;}
+    .opp .mini .cd + .cd{margin-left:-7px;}
+  }
+  @media (max-height:720px){
+    #gtop{min-height:43px;padding-top:5px;padding-bottom:5px;}
+    #opps{padding-top:6px;gap:5px;}
+    .opp{min-height:82px;padding-top:4px;padding-bottom:4px;}
+    .opp .mini{height:36px;margin-top:2px;}
+    .cd.mini{height:34px;}
+    #mid{padding:3px;gap:4px;}
+    #meWrap{padding-top:4px;padding-bottom:5px;}
+    .cd.big{width:54px;height:78px;}
+    #myhand{min-height:82px;margin-bottom:3px;}
+    #actions{min-height:60px;padding-top:6px;}
+  }
+  @media (min-width:700px){
+    #opps{gap:10px;padding-top:16px;}
+    .opp{max-width:142px;min-height:112px;padding:9px 8px;}
+    .opp .av{width:28px;height:28px;font-size:18px;}
+    .opp .nm{font-size:13px}.opp .co{font-size:11px;}
+    .opp .mini{height:46px;}
+    .cd.mini{width:30px;height:43px;padding:3px;}
+    .cd.mini .r{font-size:11px;}.opp .mini .cd + .cd{margin-left:-5px;}
+  }
+
+  /* ---------- 参考单机版：环桌牌局布局 ---------- */
+  #tableArea{position:relative;display:flex;flex:1;min-height:0;flex-direction:column;}
+  .table-brand{display:none;}
+  .opp .identity{display:flex;flex:1;min-width:0;flex-direction:column;}
+  .opp .role{display:none;}
+  .cd .bottom-corner{align-self:flex-end;transform:rotate(180deg);}
+  .cd.mini .bottom-corner{display:none;}
+  .me-avatar{display:grid;place-items:center;flex:none;width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#c0392b,#7b241c);}
+  .me-identity{display:flex;align-items:center;gap:8px;}
+  .me-role{display:none;}
+
+  @media (min-width:760px) and (min-height:600px){
+    #game{background:#07100c;}
+    #game::before{display:none;}
+    #gtop{min-height:43px;padding:6px 10px;}
+    .table-brand{display:block;font-size:23px;font-weight:900;letter-spacing:4px;color:var(--gold);text-shadow:0 2px 8px rgba(0,0,0,.6);}
+    .table-brand span{color:#fff;}
+    #gtop .l{position:absolute;left:50%;transform:translateX(-50%);}
+    #gtop .wallet{min-width:110px;text-align:right;}
+
+    #tableArea{
+      flex:1;margin:11px 12px 8px;border-radius:50% / 42%;overflow:visible;
+      background:radial-gradient(ellipse at center,#197648 0%,#0c5837 56%,#063a25 100%);
+      box-shadow:inset 0 0 70px rgba(0,0,0,.5),inset 0 0 0 10px rgba(0,0,0,.24),inset 0 0 0 14px rgba(247,207,103,.16),0 20px 50px rgba(0,0,0,.58);
+    }
+    #tableArea::after{
+      content:"";position:absolute;inset:16px;border-radius:50% / 42%;pointer-events:none;
+      border:1px solid rgba(255,255,255,.025);box-shadow:inset 0 0 90px rgba(0,0,0,.08);
+    }
+
+    #opps{position:absolute;inset:0;display:block;padding:0;z-index:4;}
+    .opp{
+      position:absolute;display:flex;width:220px;max-width:none;min-width:0;min-height:0;padding:0;
+      flex-direction:column;align-items:center;gap:4px;border:none;border-radius:0;background:none;box-shadow:none;
+    }
+    .opp.seat-slot-0{left:8%;top:45%;transform:translate(-50%,-50%);}
+    .opp.seat-slot-1{left:20%;top:18%;transform:translate(-50%,0);}
+    .opp.seat-slot-2{left:35%;top:6%;transform:translate(-50%,0);}
+    .opp.seat-slot-3{left:50%;top:1%;transform:translate(-50%,0);}
+    .opp.seat-slot-4{left:65%;top:6%;transform:translate(-50%,0);}
+    .opp.seat-slot-5{left:80%;top:18%;transform:translate(-50%,0);}
+    .opp.seat-slot-6{left:92%;top:45%;transform:translate(-50%,-50%);}
+    .opp.banker,.opp.turn,.opp.revealing{border:none;background:none;box-shadow:none;animation:none;}
+    .opp .opp-info{
+      position:relative;display:flex;width:92px;min-width:92px;padding:5px 10px 4px;gap:2px;
+      flex-direction:column;align-items:center;border:1px solid rgba(255,255,255,.18);border-radius:12px;
+      background:rgba(0,0,0,.42);box-shadow:0 8px 20px rgba(0,0,0,.2);
+    }
+    .opp.turn .opp-info,.opp.revealing .opp-info{border-color:var(--gold);box-shadow:0 0 20px rgba(247,207,103,.65),0 8px 20px rgba(0,0,0,.3);}
+    .opp.revealing .opp-info{animation:nameplatePulse 1.05s ease-out both;}
+    .opp.banker .opp-info{background:linear-gradient(180deg,rgba(247,207,103,.28),rgba(77,53,4,.66));border-color:var(--gold);box-shadow:0 0 22px rgba(247,207,103,.44);}
+    .opp .av{width:42px;height:42px;margin:0 0 2px;border:2px solid rgba(255,255,255,.35);font-size:21px;background:linear-gradient(135deg,#3a6ea5,#204060);}
+    .opp .identity{align-items:center;flex:none;}
+    .opp .nm{font-size:14px;font-weight:800;color:#fff;line-height:1.15;}
+    .opp .co{margin:2px 0 0;font-size:12px;font-weight:800;color:var(--gold);}
+    .opp .role{display:block;margin-top:3px;padding:1px 9px;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:2px;line-height:1.2;}
+    .opp .role.xian{color:#d7e7df;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.11);}
+    .opp .role.zhuang{color:#5a3a00;background:linear-gradient(180deg,#ffe27a,var(--gold-deep));}
+    .opp .mini{display:flex;height:auto;margin-top:3px;align-items:center;justify-content:center;overflow:visible;perspective:700px;}
+    .opp .mini .cd + .cd{margin-left:-20px;}
+    .opp .st{min-height:0;margin-top:2px;padding:3px 13px;border-radius:999px;background:rgba(0,0,0,.67);box-shadow:0 3px 8px rgba(0,0,0,.35);font-size:13px;font-weight:900;color:#fff;}
+    .opp .st:empty{display:none;}
+    .crown{top:-10px;right:-10px;width:26px;height:26px;font-size:14px;border-width:2px;}
+
+    #opps .cd.mini{width:56px;height:80px;padding:6px;border-radius:9px;justify-content:flex-start;}
+    #opps .cd.mini .r{display:block;font-size:14px;line-height:.78;letter-spacing:0;z-index:1;}
+    #opps .cd.mini .s{display:block;top:62%;font-size:24px;}
+    #opps .cd.mini .bottom-corner{display:none;}
+    #opps .cd.mini.back::after{font-size:20px;}
+    #opps.count-5 .cd.mini{width:48px;height:70px;}
+    #opps.count-5 .mini .cd + .cd{margin-left:-22px;}
+    #opps.count-5 .cd.mini .r{font-size:12px;}
+    #opps.count-5 .cd.mini .s{top:63%;font-size:20px;}
+    #opps.count-6 .cd.mini,#opps.count-7 .cd.mini{width:40px;height:59px;padding:4px;}
+    #opps.count-6 .mini .cd + .cd,#opps.count-7 .mini .cd + .cd{margin-left:-20px;}
+    #opps.count-6 .cd.mini .r,#opps.count-7 .cd.mini .r{font-size:10px;}
+    #opps.count-6 .cd.mini .s,#opps.count-7 .cd.mini .s{top:64%;font-size:16px;}
+    #opps.count-6 .opp-info,#opps.count-7 .opp-info{width:82px;min-width:82px;padding:4px 7px 3px;}
+    #opps.count-6 .opp .av,#opps.count-7 .opp .av{width:34px;height:34px;font-size:18px;}
+    #opps.count-6 .opp .nm,#opps.count-7 .opp .nm{font-size:12px;}
+    #opps.count-6 .opp .co,#opps.count-7 .opp .co{font-size:10px;}
+
+    #mid{position:absolute;left:50%;top:48%;z-index:2;display:flex;min-height:0;padding:0;transform:translate(-50%,-50%);}
+    #phase{font-size:16px;font-weight:900;color:var(--gold);}
+    #msg{min-width:280px;font-size:13px;}
+
+    #meWrap{
+      position:absolute;left:50%;bottom:0;z-index:5;display:flex;padding:0;transform:translateX(-50%);
+      flex-direction:column;align-items:center;background:none;
+    }
+    #myhand{display:flex;min-height:116px;margin:0 0 5px;gap:8px;perspective:900px;}
+    .cd.big{width:82px;height:116px;padding:7px 9px;border-radius:11px;}
+    .cd.big .r{display:block;font-size:23px;line-height:.86;}
+    .cd.big .s{display:block;font-size:36px;}
+    #meNiu{order:2;margin-bottom:4px;padding:3px 15px;border-radius:999px;font-size:16px;box-shadow:0 3px 8px rgba(0,0,0,.35);}
+    #mefoot{
+      order:3;display:flex;width:92px;min-width:92px;padding:5px 10px 4px;gap:2px;flex-direction:column;
+      border:1px solid rgba(255,255,255,.18);border-radius:12px;background:rgba(0,0,0,.44);box-shadow:0 8px 20px rgba(0,0,0,.25);
+    }
+    #meWrap.revealing #mefoot{border-color:var(--gold);box-shadow:0 0 20px rgba(247,207,103,.65);}
+    .me-avatar{width:42px;height:42px;margin-bottom:2px;border:2px solid rgba(255,255,255,.35);font-size:21px;}
+    .me-identity{flex-direction:column;gap:0;font-size:14px;font-weight:800;}
+    #mefoot .co{margin-top:2px;font-size:12px;}
+    .me-role{display:block;margin-top:3px;padding:1px 9px;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:2px;}
+    .me-role.xian{color:#d7e7df;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.11);}
+    .me-role.zhuang{color:#5a3a00;background:linear-gradient(180deg,#ffe27a,var(--gold-deep));}
+    #actions{position:relative;z-index:10;min-height:66px;padding:8px 10px 12px;background:#07100c;border-top:none;}
+    #actions .btn{padding:10px 18px;}
+    @keyframes nameplatePulse{0%{filter:brightness(.8)}45%{filter:brightness(1.35)}100%{filter:brightness(1)}}
+  }
+
+  @media (min-width:760px) and (max-width:1000px) and (min-height:600px){
+    #tableArea{margin-left:8px;margin-right:8px;}
+    .opp{width:170px;}
+    #opps .cd.mini{width:46px;height:66px;padding:4px;}
+    #opps .mini .cd + .cd{margin-left:-22px;}
+    #opps .cd.mini .r{font-size:11px;}
+    #opps .cd.mini .s{top:63%;font-size:18px;}
+    #opps.count-6 .cd.mini,#opps.count-7 .cd.mini{width:34px;height:50px;}
+    #opps.count-6 .mini .cd + .cd,#opps.count-7 .mini .cd + .cd{margin-left:-20px;}
+    .cd.big{width:64px;height:90px;padding:6px;}
+    .cd.big .r{font-size:18px;}.cd.big .s{font-size:28px;}
+    #myhand{min-height:90px;gap:6px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- 首页 -->
+<div class="screen on" id="home">
+  <h1>欢乐斗牛</h1>
+  <div class="sub">同一 WiFi 联机 · 最多 8 人 · 不够 AI 补齐</div>
+  <div class="box card-shell">
+    <input id="nameInput" placeholder="输入你的昵称" maxlength="8" autocomplete="off">
+    <button class="btn" id="createBtn">创建房间</button>
+    <div class="divider">或</div>
+    <input id="codeInput" placeholder="输入房间号（4位）" maxlength="4" autocomplete="off" style="text-transform:uppercase;">
+    <button class="btn grey" id="joinBtn">加入房间</button>
+  </div>
+</div>
+
+<!-- 大厅 -->
+<div class="screen" id="lobby">
+  <div style="font-size:13px;color:#cfe9dc;">房间号（报给朋友）</div>
+  <div class="code" id="lobbyCode">----</div>
+  <div class="qr" id="lobbyQr"></div>
+  <div class="joinurl" id="lobbyUrl"></div>
+  <div class="plist" id="lobbyPlayers"></div>
+  <div id="hostCtrl" style="display:none;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:420px;">
+    <div class="seatsel">总人数（含AI）：<button id="seatMinus">−</button><b id="seatNum">6</b><button id="seatPlus">+</button></div>
+    <button class="btn" id="startBtn" style="width:100%;">开始游戏（空位AI补齐）</button>
+  </div>
+  <div id="waitHint" style="display:none;color:#cfe9dc;font-size:14px;">等房主开始…</div>
+</div>
+
+<!-- 游戏 -->
+<div class="screen" id="game">
+  <div id="gtop">
+    <div class="table-brand">欢乐<span>斗牛</span></div>
+    <div class="l"><span>第 <b id="gRound">0</b> 局</span><span class="base-bet">底注 <b>100</b></span><span class="props" id="gProps">🔄0 ✖2×0</span></div>
+    <div class="wallet">💰 <b id="gCoins">0</b></div>
+  </div>
+  <div id="tableArea">
+    <div id="opps"></div>
+    <div id="mid">
+      <div id="phase"></div>
+      <div id="msg"></div>
+      <div id="timer"><div id="timerbar"></div></div>
+      <div id="timerText"></div>
+      <div id="fx"></div>
+    </div>
+    <div id="meWrap">
+      <div id="myhand"></div>
+      <span id="meNiu"></span>
+      <div id="mefoot">
+        <span class="me-avatar" id="meAvatar">😎</span>
+        <span class="me-identity"><span id="meName">你</span><span class="co" id="meCoins">💰0</span></span>
+        <span class="me-role" id="meRole">闲家</span>
+      </div>
+    </div>
+  </div>
+  <div id="actions"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const socket = io();
+let myName = '', mySeat = -1, isHost = false, lastPhase = '', lastState = null, timerInt = null;
+let lastRevealedSeats = new Set();
+
+function show(scr){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(scr).classList.add('on'); }
+function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('on'); setTimeout(()=>el.classList.remove('on'),1800); }
+
+/* -------- 首页交互 -------- */
+$('createBtn').onclick = ()=>{
+  myName = ($('nameInput').value||'').trim() || '房主';
+  socket.emit('createRoom', { name:myName, seats:6 });
+};
+$('joinBtn').onclick = ()=>{
+  myName = ($('nameInput').value||'').trim() || '玩家';
+  const code = ($('codeInput').value||'').trim().toUpperCase();
+  if(code.length<4){ toast('请输入4位房间号'); return; }
+  socket.emit('joinRoom', { code, name:myName });
+};
+// URL 带 ?room= 自动填入
+const urlRoom = new URLSearchParams(location.search).get('room');
+if(urlRoom){ $('codeInput').value = urlRoom.toUpperCase(); }
+
+/* -------- 大厅控制 -------- */
+let seatTarget = 6;
+$('seatMinus').onclick = ()=>{ socket.emit('setSeats',{seats:seatTarget-1}); };
+$('seatPlus').onclick  = ()=>{ socket.emit('setSeats',{seats:seatTarget+1}); };
+$('startBtn').onclick  = ()=>{ socket.emit('startGame'); };
+
+/* -------- Socket -------- */
+socket.on('joined', d=>{ mySeat=d.mySeat; isHost=d.isHost; });
+socket.on('errMsg', m=>toast(m));
+socket.on('state', st=>{
+  lastState = st; mySeat = st.mySeat;
+  if(st.screen==='lobby') renderLobby(st);
+  else renderGame(st);
+});
+socket.on('disconnect', ()=>toast('与服务器断开，刷新重连'));
+
+/* -------- 渲染：大厅 -------- */
+function renderLobby(st){
+  show('lobby');
+  lastRevealedSeats = new Set();
+  isHost = st.isHost; seatTarget = st.seatsTarget;
+  $('lobbyCode').textContent = st.code;
+  $('lobbyUrl').textContent = st.joinUrl;
+  $('lobbyQr').innerHTML = st.qr ? `<img src="${st.qr}" alt="qr">` : '';
+  $('seatNum').textContent = st.seatsTarget;
+  $('hostCtrl').style.display = st.isHost ? 'flex' : 'none';
+  $('waitHint').style.display = st.isHost ? 'none' : 'block';
+  $('lobbyPlayers').innerHTML = st.players.map(p=>`
+    <div class="prow ${p.isBot?'bot':''}">
+      <span class="av">${p.avatar}</span><span class="nm">${esc(p.name)}</span>
+      ${p.isHost?'<span class="tag">房主</span>':''}${p.isBot?'<span class="tag">AI</span>':''}
+      ${p.seat===st.mySeat?'<span class="tag">你</span>':''}
+    </div>`).join('') +
+    (st.players.length < st.seatsTarget ? `<div class="prow bot"><span class="av">🤖</span><span class="nm">空位 ${st.seatsTarget-st.players.length} 个将由 AI 补齐</span></div>`:'');
+}
+
+/* -------- 渲染：游戏 -------- */
+function cardHTML(c, cls, revealAnim){
+  if(!c) return `<div class="cd ${cls} back"></div>`;
+  const red = (c.suit==='♥'||c.suit==='♦');
+  return `<div class="cd ${cls} ${red?'red':'black'} ${revealAnim?'reveal':''}">
+    <div class="r top-corner">${c.rank}<br>${c.suit}</div><div class="s">${c.suit}</div>
+    <div class="r bottom-corner">${c.rank}<br>${c.suit}</div></div>`;
+}
+function niuClass(cls){ return cls==='great'?'niu-great':cls==='good'?'niu-good':cls==='none'?'niu-none':'niu-plain'; }
+
+function opponentSlots(count){
+  return ({
+    1:[3], 2:[0,6], 3:[0,3,6], 4:[0,2,4,6],
+    5:[0,1,3,5,6], 6:[0,1,2,4,5,6], 7:[0,1,2,3,4,5,6]
+  })[count] || [];
+}
+
+function renderGame(st){
+  show('game');
+  const revealedSeats = new Set(st.seats.filter(s=>s.revealed).map(s=>s.seat));
+  const newlyRevealedSeats = new Set([...revealedSeats].filter(seat=>!lastRevealedSeats.has(seat)));
+  $('gRound').textContent = st.round;
+  const me = st.seats[st.mySeat] || {};
+  $('gCoins').textContent = (me.coins||0).toLocaleString();
+  $('meName').textContent = me.name||'你';
+  $('meAvatar').textContent = me.avatar||'😎';
+    $('meCoins').textContent = '💰'+(me.coins||0).toLocaleString();
+  $('meRole').textContent = me.bankrupt?'破产':(me.isBanker?'庄家':'闲家');
+  $('meRole').className = 'me-role '+(me.bankrupt?'xian':(me.isBanker?'zhuang':'xian'));
+  const pr = st.you ? st.you.props : {swap:0,double:0};
+  $('gProps').textContent = `🔄${pr.swap} ✖2×${pr.double}`;
+  $('phase').textContent = phaseText(st.phase);
+  $('msg').textContent = st.message||'';
+  $('meWrap').classList.toggle('revealing', st.revealSeat===st.mySeat);
+
+  // 对手
+  const opps = [];
+  for(let offset=1;offset<st.seats.length;offset++) opps.push(st.seats[(st.mySeat+offset)%st.seats.length]);
+  const slots = opponentSlots(opps.length);
+  $('opps').className = 'count-'+opps.length;
+  $('opps').innerHTML = opps.map((s,oppIndex)=>{
+    const crown = s.isBanker&&!s.bankrupt?'<div class="crown">庄</div>':'';
+    let mini='';
+    if(s.bankrupt){ mini=''; }
+    else if(s.cards){ mini = s.cards.map((c,i)=>{
+        const hl = s.niu ? (s.niu.niuIdx.includes(i)?'n3':(s.niu.valIdx.includes(i)?'n2':'')) : '';
+        return cardHTML(c,'mini '+hl, newlyRevealedSeats.has(s.seat));
+      }).join(''); }
+    else { mini = Array.from({length:s.cardCount||5}).map(()=>cardHTML(null,'mini')).join(''); }
+    let st2='', stc='';
+    if(s.bankrupt){ st2='破产离场'; stc='lose'; }
+    else if(s.niu){ st2=s.niu.name; stc='niu'; }
+    else if(st.phase==='settle' && s.roundDelta){ st2=(s.roundDelta>0?'+':'')+s.roundDelta; stc=s.roundDelta>0?'win':'lose'; }
+    else if(s.grabLevel>0 && (st.phase==='banker')) { st2=(s.isBanker?'坐庄':''); stc='grab'; }
+    else if(s.acted===true && (st.phase==='grab'||st.phase==='bet'||st.phase==='prop')) { st2='已选'; stc=''; }
+    else if(s.acted===false && (st.phase==='grab'||st.phase==='bet'||st.phase==='prop')) { st2='思考中'; stc=''; }
+    if(!s.bankrupt && st.phase==='settle' && s.roundDelta){ st2=(s.roundDelta>0?'+':'')+s.roundDelta; stc=s.roundDelta>0?'win':'lose'; }
+    return `<div class="opp seat-slot-${slots[oppIndex]} ${s.isBanker&&!s.bankrupt?'banker':''} ${s.acted===false?'turn':''} ${st.revealSeat===s.seat?'revealing':''} ${s.connected?'':'off'} ${s.bankrupt?'bankrupt':''}">
+      <div class="top opp-info">${crown}<span class="av">${s.avatar}</span>
+        <span class="identity"><span class="nm">${esc(s.name)}${s.isBot?'':''}</span><span class="co">💰 ${(s.coins||0).toLocaleString()}</span></span>
+        <span class="role ${s.isBanker&&!s.bankrupt?'zhuang':'xian'}">${s.bankrupt?'离场':(s.isBanker?'庄家':'闲家')}</span>
+      </div>
+      <div class="mini">${mini}</div>
+      <div class="st ${stc}">${st2}</div>
+    </div>`;
+  }).join('');
+
+  // 我的牌
+  const myCards = st.you ? st.you.cards : [];
+  $('myhand').innerHTML = (myCards||[]).map((c,i)=>{
+    let hl='';
+    if(me.niu){ hl = me.niu.niuIdx.includes(i)?'n3':(me.niu.valIdx.includes(i)?'n2':''); }
+    return cardHTML(c,'big '+hl,false);
+  }).join('');
+  // 我的牛型（亮牌后）
+  const mn=$('meNiu');
+  if(me.niu){ mn.textContent=me.niu.name; mn.className='on '+niuClass(me.niu.cls); }
+  else { mn.className=''; mn.textContent=''; }
+
+  // 大牌庆祝
+  if(newlyRevealedSeats.has(st.mySeat) && me.niu && me.niu.cls==='great'){ fx(me.niu.name+'！'); }
+
+  // 行动区 + 倒计时
+  renderActions(st);
+  lastPhase = st.phase;
+  lastRevealedSeats = revealedSeats;
+}
+
+function renderActions(st){
+  const box=$('actions');
+  if(st.prompt && st.prompt.options){
+    box.innerHTML='';
+    st.prompt.options.forEach(o=>{
+      const b=document.createElement('button');
+      b.className='btn'+(o.value==='none'||o.value===0?' grey':'');
+      b.textContent=o.label;
+      b.onclick=()=>{ socket.emit('action',{value:o.value}); box.innerHTML='<div style="color:#cfe9dc;font-size:13px;">已选择，等其他玩家…</div>'; };
+      box.appendChild(b);
+    });
+    startTimer(st.deadline, st.durationMs);
+  } else {
+    box.innerHTML = waitLine(st);
+    if(st.deadline) startTimer(st.deadline, st.durationMs);
+    else stopTimer();
+  }
+}
+function waitLine(st){
+  const me = st.seats && st.seats[st.mySeat];
+  if(me && me.bankrupt) return '<div style="color:#ff9b9b;font-size:13px;font-weight:800;">你已破产离场，观战中</div>';
+  if(st.phase==='settle') return isHost?'<button class="btn grey" onclick="socket.emit(\'backToLobby\')">结束返回大厅</button>':'<div style="color:#cfe9dc;font-size:13px;">本局结束</div>';
+  if(st.phase==='banker'||st.phase==='reveal'||st.phase==='deal'||st.phase==='prop') return '<div style="color:#cfe9dc;font-size:13px;">'+phaseText(st.phase)+'…</div>';
+  return '<div style="color:#cfe9dc;font-size:13px;">等待其他玩家…</div>';
+}
+function startTimer(deadline, durationMs){
+  const t=$('timer'), bar=$('timerbar'), txt=$('timerText'); if(!deadline){ stopTimer(); return; }
+  stopTimer();
+  t.classList.add('on'); txt.classList.add('on'); const total=Math.max(1,durationMs || (deadline-Date.now()));
+  timerInt=setInterval(()=>{
+    const left=deadline-Date.now();
+    bar.style.width=Math.max(0,Math.min(100,left/total*100))+'%';
+    txt.textContent=Math.max(0,Math.ceil(left/1000))+'s';
+    if(left<=0) stopTimer();
+  },100);
+}
+function stopTimer(){ if(timerInt){clearInterval(timerInt);timerInt=null;} $('timer').classList.remove('on'); $('timerText').classList.remove('on'); $('timerText').textContent=''; }
+
+function fx(text){ const el=$('fx'); el.textContent=text; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }
+function phaseText(p){ return {deal:'发牌',grab:'抢庄',banker:'确定庄家',prop:'道具阶段',bet:'下注',reveal:'亮牌',settle:'结算'}[p]||''; }
+function esc(s){ return String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+</script>
+</body>
+</html>
