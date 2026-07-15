@@ -439,8 +439,8 @@
   <div class="sub">同一 WiFi 联机 · 最多 8 人 · 不够 AI 补齐</div>
   <div class="box card-shell">
     <input id="nameInput" placeholder="输入你的昵称" maxlength="8" autocomplete="off">
-    <button class="btn" id="createBtn">创建房间</button>
-    <button class="btn grey" id="createHostOnlyBtn">创建观战房间（主机不参与）</button>
+    <button class="btn" id="createBtn">主机开房（不参与）</button>
+    <button class="btn grey" id="createHostOnlyBtn">创建并参与游戏</button>
     <div class="divider">或</div>
     <input id="codeInput" placeholder="输入房间号（4位）" maxlength="4" autocomplete="off" style="text-transform:uppercase;">
     <button class="btn grey" id="joinBtn">加入房间</button>
@@ -506,12 +506,12 @@ function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('on')
 
 /* -------- 首页交互 -------- */
 $('createBtn').onclick = ()=>{
-  myName = ($('nameInput').value||'').trim() || '房主';
-  socket.emit('createRoom', { name:myName, seats:6, hostPlays:true });
-};
-$('createHostOnlyBtn').onclick = ()=>{
   myName = ($('nameInput').value||'').trim() || '主机';
   socket.emit('createRoom', { name:myName, seats:6, hostPlays:false });
+};
+$('createHostOnlyBtn').onclick = ()=>{
+  myName = ($('nameInput').value||'').trim() || '房主';
+  socket.emit('createRoom', { name:myName, seats:6, hostPlays:true });
 };
 $('joinBtn').onclick = ()=>{
   myName = ($('nameInput').value||'').trim() || '玩家';
