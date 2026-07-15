@@ -118,7 +118,7 @@ function makeBot(idx){
            cards:[], hand:null, grabLevel:0, betLevel:1, revealed:false, roundDelta:0, usedDouble:false,
            bankrupt:false, specialDouble:false };
 }
-async function makeRoom(hostSocketId, name, seats, socket){
+async function makeRoom(hostSocketId, name, seats, socket, hostPlays=true){
   const code = genCode();
   const joinUrl = `${publicOrigin(socket)}/?room=${code}`;
   let qr = '';
@@ -126,9 +126,11 @@ async function makeRoom(hostSocketId, name, seats, socket){
   const room = { code, hostId:hostSocketId, seatsTarget:Math.max(2,Math.min(MAX_SEATS,seats||6)),
                  started:false, phase:'lobby', message:'', round:0, bankerSeat:-1, revealSeat:-1,
                  deckRemain:[], pending:null, players:[], joinUrl, qr, loopRunning:false };
-  const host = makeHumanPlayer(hostSocketId, name);
-  host.avatar = HUMAN_AVATARS[0];
-  room.players.push(host);
+  if (hostPlays){
+    const host = makeHumanPlayer(hostSocketId, name);
+    host.avatar = HUMAN_AVATARS[0];
+    room.players.push(host);
+  }
   rooms[code] = room;
   socketRoom[hostSocketId] = code;
   return room;
@@ -143,6 +145,10 @@ function transferHostIfNeeded(room){
   if (!nextHost) return false;
   room.hostId = nextHost.id;
   return true;
+}
+function hostView(room){
+  if (room.started) return gameView(room, -1);
+  return lobbyView(room, -1);
 }
 /* ================= 视图（发给客户端的状态） ================= */
 function hideFifthCard(room){ return room.phase==='deal' || room.phase==='grab'; }
@@ -184,7 +190,7 @@ function seatView(room, p, idx, mySeat){
 }
 function lobbyView(room, mySeat){
   return { screen:'lobby', code:room.code, joinUrl:room.joinUrl, qr:room.qr,
-    seatsTarget:room.seatsTarget, isHost: !!(room.players[mySeat] && room.players[mySeat].id===room.hostId),
+    seatsTarget:room.seatsTarget, isHost: mySeat < 0 || !!(room.players[mySeat] && room.players[mySeat].id===room.hostId),
     mySeat,
     players: room.players.map((p,i)=>({ seat:i, name:p.name, avatar:p.avatar, isBot:p.isBot, connected:p.connected, isHost:p.id===room.hostId })),
   };
@@ -196,15 +202,18 @@ function gameView(room, mySeat){
     deadline: room.pending ? room.pending.deadline : null,
     durationMs: room.pending ? room.pending.timeoutMs : null,
     prompt: buildPrompt(room, mySeat),
-    isHost: !!(me && me.id===room.hostId),
+    isHost: mySeat < 0 || !!(me && me.id===room.hostId),
     you: me ? { cards:visibleCards(room, me), props:me.props, coins:me.coins, roundDelta:me.roundDelta, bankrupt:me.bankrupt } : null,
     seats: room.players.map((p,i)=>seatView(room,p,i,mySeat)),
   };
 }
 function broadcast(room){
   if (!room) return;
+  const hostSeat = seatOfSocket(room, room.hostId);
+  if (hostSeat < 0) io.to(room.hostId).emit('state', hostView(room));
   for (const p of room.players){
     if (p.isBot || !p.connected) continue;
+    if (p.id === room.hostId && hostSeat < 0) continue;
     const view = room.started ? gameView(room, room.players.indexOf(p)) : lobbyView(room, room.players.indexOf(p));
     io.to(p.id).emit('state', view);
   }
@@ -474,10 +483,10 @@ function destroyRoom(room){
 
 /* ================= Socket 事件 ================= */
 io.on('connection', (socket) => {
-  socket.on('createRoom', async ({ name, seats }) => {
-    const room = await makeRoom(socket.id, name, seats, socket);
+  socket.on('createRoom', async ({ name, seats, hostPlays }) => {
+    const room = await makeRoom(socket.id, name, seats, socket, hostPlays !== false);
     socket.join(room.code);
-    socket.emit('joined', { code:room.code, mySeat:0, isHost:true });
+    socket.emit('joined', { code:room.code, mySeat: hostPlays === false ? -1 : 0, isHost:true });
     broadcast(room);
   });
 
@@ -538,7 +547,13 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     const code = socketRoom[socket.id]; delete socketRoom[socket.id];
     const room = rooms[code]; if (!room) return;
-    const seat = seatOfSocket(room, socket.id); if (seat<0) return;
+    const seat = seatOfSocket(room, socket.id);
+    if (seat<0){
+      if (socket.id !== room.hostId) return;
+      if (!transferHostIfNeeded(room)){ destroyRoom(room); return; }
+      broadcast(room);
+      return;
+    }
     const p = room.players[seat];
     if (room.started){
       // 游戏中：掉线者转为托管（当作机器人自动出牌）

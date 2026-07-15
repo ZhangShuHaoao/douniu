@@ -345,6 +345,7 @@
     .opp.seat-slot-4{left:65%;top:6%;transform:translate(-50%,0);}
     .opp.seat-slot-5{left:80%;top:18%;transform:translate(-50%,0);}
     .opp.seat-slot-6{left:92%;top:45%;transform:translate(-50%,-50%);}
+    .opp.seat-slot-7{left:50%;top:68%;transform:translate(-50%,0);}
     .opp.banker,.opp.turn,.opp.revealing{border:none;background:none;box-shadow:none;animation:none;}
     .opp .opp-info{
       position:relative;display:flex;width:92px;min-width:92px;padding:5px 10px 4px;gap:2px;
@@ -376,14 +377,14 @@
     #opps.count-5 .mini .cd + .cd{margin-left:-22px;}
     #opps.count-5 .cd.mini .r{font-size:12px;}
     #opps.count-5 .cd.mini .s{top:63%;font-size:20px;}
-    #opps.count-6 .cd.mini,#opps.count-7 .cd.mini{width:40px;height:59px;padding:4px;}
-    #opps.count-6 .mini .cd + .cd,#opps.count-7 .mini .cd + .cd{margin-left:-20px;}
-    #opps.count-6 .cd.mini .r,#opps.count-7 .cd.mini .r{font-size:10px;}
-    #opps.count-6 .cd.mini .s,#opps.count-7 .cd.mini .s{top:64%;font-size:16px;}
-    #opps.count-6 .opp-info,#opps.count-7 .opp-info{width:82px;min-width:82px;padding:4px 7px 3px;}
-    #opps.count-6 .opp .av,#opps.count-7 .opp .av{width:34px;height:34px;font-size:18px;}
-    #opps.count-6 .opp .nm,#opps.count-7 .opp .nm{font-size:12px;}
-    #opps.count-6 .opp .co,#opps.count-7 .opp .co{font-size:10px;}
+    #opps.count-6 .cd.mini,#opps.count-7 .cd.mini,#opps.count-8 .cd.mini{width:40px;height:59px;padding:4px;}
+    #opps.count-6 .mini .cd + .cd,#opps.count-7 .mini .cd + .cd,#opps.count-8 .mini .cd + .cd{margin-left:-20px;}
+    #opps.count-6 .cd.mini .r,#opps.count-7 .cd.mini .r,#opps.count-8 .cd.mini .r{font-size:10px;}
+    #opps.count-6 .cd.mini .s,#opps.count-7 .cd.mini .s,#opps.count-8 .cd.mini .s{top:64%;font-size:16px;}
+    #opps.count-6 .opp-info,#opps.count-7 .opp-info,#opps.count-8 .opp-info{width:82px;min-width:82px;padding:4px 7px 3px;}
+    #opps.count-6 .opp .av,#opps.count-7 .opp .av,#opps.count-8 .opp .av{width:34px;height:34px;font-size:18px;}
+    #opps.count-6 .opp .nm,#opps.count-7 .opp .nm,#opps.count-8 .opp .nm{font-size:12px;}
+    #opps.count-6 .opp .co,#opps.count-7 .opp .co,#opps.count-8 .opp .co{font-size:10px;}
 
     #mid{position:absolute;left:50%;top:48%;z-index:2;display:flex;min-height:0;padding:0;transform:translate(-50%,-50%);}
     #phase{font-size:16px;font-weight:900;color:var(--gold);}
@@ -393,6 +394,7 @@
       position:absolute;left:50%;bottom:0;z-index:5;display:flex;padding:0;transform:translateX(-50%);
       flex-direction:column;align-items:center;background:none;
     }
+    #game.spectator #meWrap{display:none;}
     #myhand{display:flex;min-height:116px;margin:0 0 5px;gap:8px;perspective:900px;}
     .cd.big{width:82px;height:116px;padding:7px 9px;border-radius:11px;}
     .cd.big .r{display:block;font-size:23px;line-height:.86;}
@@ -421,8 +423,8 @@
     #opps .mini .cd + .cd{margin-left:-22px;}
     #opps .cd.mini .r{font-size:11px;}
     #opps .cd.mini .s{top:63%;font-size:18px;}
-    #opps.count-6 .cd.mini,#opps.count-7 .cd.mini{width:34px;height:50px;}
-    #opps.count-6 .mini .cd + .cd,#opps.count-7 .mini .cd + .cd{margin-left:-20px;}
+    #opps.count-6 .cd.mini,#opps.count-7 .cd.mini,#opps.count-8 .cd.mini{width:34px;height:50px;}
+    #opps.count-6 .mini .cd + .cd,#opps.count-7 .mini .cd + .cd,#opps.count-8 .mini .cd + .cd{margin-left:-20px;}
     .cd.big{width:64px;height:90px;padding:6px;}
     .cd.big .r{font-size:18px;}.cd.big .s{font-size:28px;}
     #myhand{min-height:90px;gap:6px;}
@@ -438,6 +440,7 @@
   <div class="box card-shell">
     <input id="nameInput" placeholder="输入你的昵称" maxlength="8" autocomplete="off">
     <button class="btn" id="createBtn">创建房间</button>
+    <button class="btn grey" id="createHostOnlyBtn">创建观战房间（主机不参与）</button>
     <div class="divider">或</div>
     <input id="codeInput" placeholder="输入房间号（4位）" maxlength="4" autocomplete="off" style="text-transform:uppercase;">
     <button class="btn grey" id="joinBtn">加入房间</button>
@@ -504,7 +507,11 @@ function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('on')
 /* -------- 首页交互 -------- */
 $('createBtn').onclick = ()=>{
   myName = ($('nameInput').value||'').trim() || '房主';
-  socket.emit('createRoom', { name:myName, seats:6 });
+  socket.emit('createRoom', { name:myName, seats:6, hostPlays:true });
+};
+$('createHostOnlyBtn').onclick = ()=>{
+  myName = ($('nameInput').value||'').trim() || '主机';
+  socket.emit('createRoom', { name:myName, seats:6, hostPlays:false });
 };
 $('joinBtn').onclick = ()=>{
   myName = ($('nameInput').value||'').trim() || '玩家';
@@ -564,7 +571,16 @@ function renderLobby(st){
   $('seatNum').textContent = st.seatsTarget;
   $('hostCtrl').style.display = st.isHost ? 'flex' : 'none';
   $('waitHint').style.display = st.isHost ? 'none' : 'block';
-  $('lobbyPlayers').innerHTML = st.players.map(p=>`
+  const isHostOnly = st.isHost && st.mySeat < 0;
+  if(st.isHost){
+    const canStart = !isHostOnly || st.players.length >= 1;
+    $('startBtn').disabled = !canStart;
+    $('startBtn').textContent = canStart ? '开始游戏（空位AI补齐）' : '等待玩家加入';
+  }
+  const hostLine = isHostOnly
+    ? `<div class="prow"><span class="av">🖥️</span><span class="nm">主机控制端</span><span class="tag">观战</span><span class="tag">不占座</span></div>`
+    : '';
+  $('lobbyPlayers').innerHTML = hostLine + st.players.map(p=>`
     <div class="prow ${p.isBot?'bot':''}">
       <span class="av">${p.avatar}</span><span class="nm">${esc(p.name)}</span>
       ${p.isHost?'<span class="tag">房主</span>':''}${p.isBot?'<span class="tag">AI</span>':''}
@@ -586,31 +602,34 @@ function niuClass(cls){ return cls==='great'?'niu-great':cls==='good'?'niu-good'
 function opponentSlots(count){
   return ({
     1:[3], 2:[0,6], 3:[0,3,6], 4:[0,2,4,6],
-    5:[0,1,3,5,6], 6:[0,1,2,4,5,6], 7:[0,1,2,3,4,5,6]
+    5:[0,1,3,5,6], 6:[0,1,2,4,5,6], 7:[0,1,2,3,4,5,6], 8:[0,1,2,3,4,5,6,7]
   })[count] || [];
 }
 
 function renderGame(st){
   show('game');
+  const isSpectator = st.mySeat < 0 || !st.you;
+  $('game').classList.toggle('spectator', isSpectator);
   const revealedSeats = new Set(st.seats.filter(s=>s.revealed).map(s=>s.seat));
   const newlyRevealedSeats = new Set([...revealedSeats].filter(seat=>!lastRevealedSeats.has(seat)));
   $('gRound').textContent = st.round;
   const me = st.seats[st.mySeat] || {};
-  $('gCoins').textContent = (me.coins||0).toLocaleString();
-  $('meName').textContent = me.name||'你';
-  $('meAvatar').textContent = me.avatar||'😎';
-    $('meCoins').textContent = '💰'+(me.coins||0).toLocaleString();
-  $('meRole').textContent = me.bankrupt?'破产':(me.isBanker?'庄家':'闲家');
-  $('meRole').className = 'me-role '+(me.bankrupt?'xian':(me.isBanker?'zhuang':'xian'));
+  $('gCoins').textContent = isSpectator ? '主机观战' : (me.coins||0).toLocaleString();
+  $('meName').textContent = isSpectator ? '主机' : (me.name||'你');
+  $('meAvatar').textContent = isSpectator ? '🖥️' : (me.avatar||'😎');
+  $('meCoins').textContent = isSpectator ? '不参与' : '💰'+(me.coins||0).toLocaleString();
+  $('meRole').textContent = isSpectator ? '观战' : (me.bankrupt?'破产':(me.isBanker?'庄家':'闲家'));
+  $('meRole').className = 'me-role '+(!isSpectator && me.isBanker && !me.bankrupt?'zhuang':'xian');
   const pr = st.you ? st.you.props : {swap:0,double:0};
-  $('gProps').textContent = `🔄${pr.swap} ✖2×${pr.double}`;
+  $('gProps').textContent = isSpectator ? '观战' : `🔄${pr.swap} ✖2×${pr.double}`;
   $('phase').textContent = phaseText(st.phase);
   $('msg').textContent = st.message||'';
-  $('meWrap').classList.toggle('revealing', st.revealSeat===st.mySeat);
+  $('meWrap').classList.toggle('revealing', !isSpectator && st.revealSeat===st.mySeat);
 
   // 对手
   const opps = [];
-  for(let offset=1;offset<st.seats.length;offset++) opps.push(st.seats[(st.mySeat+offset)%st.seats.length]);
+  if(isSpectator) opps.push(...st.seats);
+  else for(let offset=1;offset<st.seats.length;offset++) opps.push(st.seats[(st.mySeat+offset)%st.seats.length]);
   const slots = opponentSlots(opps.length);
   $('opps').className = 'count-'+opps.length;
   $('opps').innerHTML = opps.map((s,oppIndex)=>{
