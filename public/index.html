@@ -450,6 +450,7 @@
   <div class="code" id="lobbyCode">----</div>
   <div class="qr" id="lobbyQr"></div>
   <div class="joinurl" id="lobbyUrl"></div>
+  <button class="btn grey" id="copyInviteBtn" style="width:100%;max-width:420px;">复制邀请链接</button>
   <div class="plist" id="lobbyPlayers"></div>
   <div id="hostCtrl" style="display:none;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:420px;">
     <div class="seatsel">总人数（含AI）：<button id="seatMinus">−</button><b id="seatNum">6</b><button id="seatPlus">+</button></div>
@@ -513,13 +514,34 @@ $('joinBtn').onclick = ()=>{
 };
 // URL 带 ?room= 自动填入
 const urlRoom = new URLSearchParams(location.search).get('room');
-if(urlRoom){ $('codeInput').value = urlRoom.toUpperCase(); }
+if(urlRoom){
+  const roomCode = urlRoom.toUpperCase();
+  $('codeInput').value = roomCode;
+  $('joinBtn').textContent = '加入房间 '+roomCode;
+  $('nameInput').focus();
+}
 
 /* -------- 大厅控制 -------- */
 let seatTarget = 6;
 $('seatMinus').onclick = ()=>{ socket.emit('setSeats',{seats:seatTarget-1}); };
 $('seatPlus').onclick  = ()=>{ socket.emit('setSeats',{seats:seatTarget+1}); };
 $('startBtn').onclick  = ()=>{ socket.emit('startGame'); };
+$('copyInviteBtn').onclick = async ()=>{
+  const link = ($('lobbyUrl').textContent||'').trim();
+  if(!link){ toast('邀请链接还没生成'); return; }
+  try{
+    if(navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(link);
+    else{
+      const ta=document.createElement('textarea');
+      ta.value=link; ta.style.position='fixed'; ta.style.left='-9999px';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    toast('邀请链接已复制');
+  }catch(e){
+    toast('复制失败，长按链接手动复制');
+  }
+};
 
 /* -------- Socket -------- */
 socket.on('joined', d=>{ mySeat=d.mySeat; isHost=d.isHost; });
